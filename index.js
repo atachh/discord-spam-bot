@@ -2,7 +2,6 @@ const Discord = require('discord.js');
 const fs = require('fs');
 const readline = require('readline');
 
-
 const bots = [];
 
 let config = {
@@ -13,46 +12,7 @@ let config = {
     tokens: []
 };
 
-setup();
-
-function setupBots() {
-    createBots();
-    setSpam();
-    loginBots();
-}
-
-function createBots() {
-
-    for (let i = 0; i < config.tokens.length; i++) {
-        bots.push(new Discord.Client());
-    }
-
-}
-
-function setSpam() {
-    for (let i = 0; i < bots.length; i++) {
-        bots[i].on('ready', () => {
-            const channel = bots[i].channels.get(config.channelId);
-            setInterval(() => {
-                if (config.image !== null) {
-                    channel.send({
-                        files: [`images/${config.image}`]
-                    });
-                } else if (config.message !== null) {
-                    channel.send(config.message);
-                }
-            }, config.interval);
-        });
-    }
-}
-
-function loginBots() {
-    for (let i = 0; i < bots.length; i++) {
-        bots[i].login(config.tokens[i]);
-    }
-}
-
-function setup() {
+const setup = (callback) => {
     const istream = readline.createInterface({
         input: fs.createReadStream('config.txt')
     });
@@ -82,7 +42,49 @@ function setup() {
             }
         }
     }).on('close', () => {
-        setupBots();
-        console.log(config);
+        callback();
+    });
+}
+
+
+const setupBot = () => {
+    createBots(config.tokens.length);
+    setSpam();
+    loginBots();
+}
+
+
+setup(setupBot);
+
+const createBots = (amount) => {
+    if (amount === 0) return;
+    bots.push(new Discord.Client());
+    return createBots(amount - 1);
+}
+
+const setSpam = () => {
+    bots.forEach(bot => {
+        bot.on('ready', () => {
+            const channel = bot.channels.get(config.channelId);
+
+            setInterval(() => {
+                if (config.image !== '') {
+                    channel.send({
+                        files: [`images/${config.image}`]
+                    });
+                } else if (config.message !== '') {
+                    channel.send(config.message);
+                } else return;
+            }, config.interval);
+        })
+    });
+}
+
+const loginBots = () => {
+    let counter = 0;
+
+    bots.forEach(bot => {
+        bot.login(config.tokens[counter]);
+        counter++;
     });
 }
